@@ -40,6 +40,7 @@ namespace CraftSort
         private static int[] _indexCache = System.Array.Empty<int>();
         private static string[] _nameCache = System.Array.Empty<string>();
         private static Recipe?[] _recipeCache = System.Array.Empty<Recipe?>();
+        private static readonly Dictionary<string, ItemDrop> _cookedFoodCache = new Dictionary<string, ItemDrop>();
 
         public static float[] GetValueCache() => _valueCache;
         public static int[] GetIndexCache() => _indexCache;
@@ -84,11 +85,11 @@ namespace CraftSort
                 case SortMode.SpiritDmg:
                     return s.m_damages.m_spirit;
                 case SortMode.Health:
-                    return s.m_food + FoodTypePriority(s);
+                    return GetFoodStats(recipe, s).m_food;
                 case SortMode.Stamina:
-                    return s.m_foodStamina + FoodTypePriority(s);
+                    return GetFoodStats(recipe, s).m_foodStamina;
                 case SortMode.Eitr:
-                    return s.m_foodEitr + FoodTypePriority(s);
+                    return GetFoodStats(recipe, s).m_foodEitr;
                 default:
                     return 0f;
             }
@@ -112,9 +113,49 @@ namespace CraftSort
             return (int)s.m_itemType == 5 ? TypeBonus : 0f;
         }
 
-        private static float FoodTypePriority(ItemDrop.ItemData.SharedData s)
+        private static ItemDrop.ItemData.SharedData GetFoodStats(
+            Recipe recipe,
+            ItemDrop.ItemData.SharedData fallback)
         {
-            return (int)s.m_itemType == 2 ? TypeBonus : 0f;
+            var rawItem = recipe.m_item;
+            if (rawItem == null) return fallback;
+
+            string rawPrefabName = rawItem.gameObject.name;
+            if (_cookedFoodCache.TryGetValue(rawPrefabName, out var cached) && cached != null)
+            {
+                var cachedShared = cached.m_itemData?.m_shared;
+                if (cachedShared != null) return cachedShared;
+            }
+
+            var scene = ZNetScene.instance;
+            if (scene == null || scene.m_prefabs == null) return fallback;
+
+            for (int i = 0; i < scene.m_prefabs.Count; i++)
+            {
+                var prefab = scene.m_prefabs[i];
+                if (prefab == null) continue;
+
+                var station = prefab.GetComponent<CookingStation>();
+                if (station == null || station.m_conversion == null) continue;
+
+                for (int j = 0; j < station.m_conversion.Count; j++)
+                {
+                    var conversion = station.m_conversion[j];
+                    if (conversion == null || conversion.m_from == null || conversion.m_to == null)
+                        continue;
+
+                    if (conversion.m_from.gameObject.name != rawPrefabName) continue;
+
+                    var cooked = conversion.m_to;
+                    var cookedShared = cooked.m_itemData?.m_shared;
+                    if (cookedShared == null) continue;
+
+                    _cookedFoodCache[rawPrefabName] = cooked;
+                    return cookedShared;
+                }
+            }
+
+            return fallback;
         }
 
         private static float WeaponTypePriority(ItemDrop.ItemData.SharedData s)

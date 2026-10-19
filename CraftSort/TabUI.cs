@@ -699,18 +699,13 @@ namespace CraftSort
                 var list = Patch_UpdateRecipeList.GetAvailableRecipesList(gui);
                 if (list != null && list.Count > 0)
                 {
-                    int foodCount = 0;
-                    int totalCount = 0;
                     for (int i = 0; i < list.Count; i++)
                     {
                         var recipe = Patch_UpdateRecipeList.GetRecipeFromPair(list[i]);
                         var shared = recipe?.m_item?.m_itemData?.m_shared;
                         if (shared == null) continue;
-                        totalCount++;
-                        if (IsFoodItem(shared)) foodCount++;
+                        if (IsFoodItem(shared)) return true;
                     }
-                    if (totalCount > 0)
-                        return foodCount > 0;
                 }
             }
 
@@ -718,8 +713,6 @@ namespace CraftSort
             if (db != null && db.m_recipes != null)
             {
                 string stationPrefab = GetPrefabName(station.gameObject);
-                int foodCount = 0;
-                int totalCount = 0;
 
                 for (int i = 0; i < db.m_recipes.Count; i++)
                 {
@@ -730,12 +723,8 @@ namespace CraftSort
                     var shared = recipe.m_item?.m_itemData?.m_shared;
                     if (shared == null) continue;
 
-                    totalCount++;
-                    if (IsFoodItem(shared)) foodCount++;
+                    if (IsFoodItem(shared)) return true;
                 }
-
-                if (totalCount > 0)
-                    return foodCount > 0;
             }
 
             string name = station.gameObject.name;
@@ -745,8 +734,7 @@ namespace CraftSort
 
         private static bool IsFoodItem(ItemDrop.ItemData.SharedData shared)
         {
-            return (int)shared.m_itemType == 2
-                && (shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f);
+            return shared.m_food > 0f || shared.m_foodStamina > 0f || shared.m_foodEitr > 0f;
         }
 
         private static string GetPrefabName(GameObject go)
