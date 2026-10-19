@@ -4,6 +4,23 @@ All notable changes to CraftSort are documented in this file.
 
 ---
 
+## [1.5.0] — 2026-10-19
+
+### Added
+- Safe ScriptEngine reload support with cleanup of Harmony patches, UI, event handlers, and runtime resources.
+- Build deployment to the Valheim installation's `BepInEx/scripts` directory, selected through `VALHEIM_INSTALL`.
+- Build deployment copies the PDB alongside the DLL for ScriptEngine reload support.
+
+### Changed
+- Food preparation table recipes sort using their cooked recovery stats.
+- Mead recipes sort using fermented health, stamina, and Eitr recovery stats.
+- Long-duration effects that increase the corresponding recovery rate take priority over direct restoration.
+
+### Fixed
+- Corrected food station classification for preparation tables and fermenters.
+
+---
+
 ## [1.3.2] — 2026-07-28
 
 ### Changed

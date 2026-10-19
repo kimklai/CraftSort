@@ -32,10 +32,12 @@ Verify: dotnet --version (must return 8.x or higher)
 Build command:
 
     cd C:\All\Project\vibecode\CraftSort
+    $env:VALHEIM_INSTALL = 'C:\Program Files (x86)\Steam\steamapps\common\Valheim'
     dotnet build CraftSort\CraftSort.csproj -c Debug
+    dotnet build CraftSort\CraftSort.csproj -c Release
 
-Output DLL: CraftSort\bin\Debug\net48\CraftSort.dll
-The csproj has an AfterBuild target that copies the DLL to the r2modman profile plugins folder automatically.
+Output: CraftSort\bin\{Debug|Release}\net48\CraftSort.dll and CraftSort.pdb
+The csproj copies both files to $(VALHEIM_INSTALL)\BepInEx\scripts automatically.
 
 ---
 
@@ -46,7 +48,7 @@ The csproj has an AfterBuild target that copies the DLL to the r2modman profile 
 - ValheimPath: reads from VALHEIM_INSTALL env variable, falls back to standard Steam path
 - BepInExPath: $(ValheimPath)\BepInEx
 - All assembly references use Private=false (DLLs are not bundled in output)
-- AfterBuild target copies output DLL to the r2modman profile plugins folder
+- AfterBuild target copies output DLL and PDB to $(ValheimPath)\BepInEx\scripts
 - Do not restructure the csproj
 
 Assembly references:
@@ -200,8 +202,8 @@ InventoryGui+RecipeDataPair (public struct with auto-properties):
 ## Success criteria
 
 - dotnet build exits with 0 errors and 0 warnings
-- File exists: ...BepInEx\plugins\CraftSort.dll
-- LogOutput.log line: [Info : BepInEx] Loading [CraftSort 1.2.0]
+- File exists: ...BepInEx\scripts\CraftSort.dll
+- LogOutput.log line: [Info : BepInEx] Loading [CraftSort 1.5.0]
 - LogOutput.log line: CraftSort loaded
 - No lines containing [Error near CraftSort or Patch_
 

@@ -5,7 +5,7 @@ using HarmonyLib;
 
 namespace CraftSort
 {
-    [BepInPlugin("dev.craftsort", "CraftSort", "1.3.2")]
+    [BepInPlugin("dev.craftsort", "CraftSort", "1.5.0")]
     public class CraftSortPlugin : BaseUnityPlugin
     {
         public static CraftSortPlugin Instance { get; private set; } = null!;

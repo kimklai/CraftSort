@@ -3,6 +3,7 @@
 ## 專案概述
 
 - **名稱：** CraftSort
+- **目前版本：** 1.5.0
 - **用途：** Valheim 用戶端模組，在製作站的配方清單旁加入排序／篩選按鈕。
 - **遊戲與執行環境：** Valheim 0.221.13、Unity 6、BepInEx 5.4.x、Harmony。
 - **目標框架：** .NET Framework 4.8；使用 .NET 8 SDK 建置。
@@ -77,8 +78,9 @@
   dotnet build CraftSort\CraftSort.csproj -c Debug
   ```
 
-- 輸出組件：`CraftSort/bin/Debug/net48/CraftSort.dll`。
-- 建置成功後自動建立並複製至 `$(VALHEIM_INSTALL)/BepInEx/scripts/CraftSort.dll`，供 ScriptEngine 熱載入。
+- 支援 Debug 與 Release 組態；Release 建置命令為 `dotnet build CraftSort\CraftSort.csproj -c Release`。
+- 輸出路徑為 `CraftSort/bin/{Configuration}/net48/`，兩種組態都產生 DLL 與 portable PDB。
+- 建置成功後自動建立並複製 `CraftSort.dll` 與 `CraftSort.pdb` 至 `$(VALHEIM_INSTALL)/BepInEx/scripts`，供 ScriptEngine 熱載入與除錯資訊解析。
 - 專案參考的 BepInEx DLL 來源為同一安裝目錄下的 `BepInEx/core`；Valheim 與 Unity 組件來源為 `valheim_Data/Managed`。
 - 建置輸出與遊戲部署由專案 target 完成；部署目的地需可寫入。
 

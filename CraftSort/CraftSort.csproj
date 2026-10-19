@@ -6,6 +6,8 @@
     <RootNamespace>CraftSort</RootNamespace>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
 
     <!-- Set VALHEIM_INSTALL to the Valheim install directory for non-default Steam libraries. -->
     <ValheimPath Condition="'$(VALHEIM_INSTALL)' != ''">$(VALHEIM_INSTALL)</ValheimPath>
@@ -67,7 +69,7 @@
   <Target Name="DeployToScriptEngine" AfterTargets="Build">
     <MakeDir Directories="$(BepInExPath)\scripts" />
     <Copy
-      SourceFiles="$(OutputPath)$(AssemblyName).dll"
+      SourceFiles="$(OutputPath)$(AssemblyName).dll;$(OutputPath)$(AssemblyName).pdb"
       DestinationFolder="$(BepInExPath)\scripts"
       SkipUnchangedFiles="true" />
   </Target>

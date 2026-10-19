@@ -160,21 +160,22 @@ Jotunn, EpicLoot
 
 ## 📦 Building from Source
 
-```bash
+```powershell
+$env:VALHEIM_INSTALL = 'E:\SteamLibrary\steamapps\common\Valheim'
 dotnet build CraftSort/CraftSort.csproj -c Debug
 ```
 
-Requires .NET 8 SDK. Output: `CraftSort/bin/Debug/net48/CraftSort.dll`
+Requires .NET 8 SDK. Set `VALHEIM_INSTALL` to your Valheim installation directory when it is not at the default Steam location. Both Debug and Release configurations are supported:
+
+```powershell
+dotnet build CraftSort/CraftSort.csproj -c Release
+```
+
+Build outputs are written to `CraftSort/bin/{Configuration}/net48/`. Each build deploys both `CraftSort.dll` and `CraftSort.pdb` to `%VALHEIM_INSTALL%/BepInEx/scripts` for ScriptEngine.
 
 ### In-game development reload
 
 CraftSort supports reloads through the BepInEx.Debug **ScriptEngine**. Install ScriptEngine in the profile's `BepInEx/plugins` folder, then move CraftSort out of `BepInEx/plugins` and into `BepInEx/scripts`. Do not keep a second CraftSort DLL in `plugins`, since both copies use the same plugin GUID.
-
-Build directly into the ScriptEngine folder with:
-
-```bash
-dotnet build CraftSort/CraftSort.csproj -c Debug -p:UseScriptEngine=true
-```
 
 Press **F6** in-game to unload and reload scripts. CraftSort removes its Harmony patches, UI objects, event handlers, and generated sprites during unload. Reopen the crafting panel after reload so its UI is recreated.
 
