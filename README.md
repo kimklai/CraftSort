@@ -22,6 +22,7 @@ Revival of the deprecated SortCraft mod. Adds icon tab buttons to the left side 
 - **All-icon buttons** — every button uses a custom icon, no text
 - **Weapon filters** — 1H / 2H toggle buttons (blue border) combine with any sort mode
 - **Pinned recipes** — right-click a recipe to pin or unpin it; pins affect the default recipe order only
+- **Eitr sort** — shows only recipes that provide Eitr
 - **Auto food/combat detection** — works with any modded station by inspecting recipe content
 - **New recipe indicator** — yellow dot on unviewed recipes + "New" filter tab
 - **Clean button** — marks all known recipes as viewed, clears all yellow dots

@@ -9,6 +9,9 @@ All notable changes to CraftSort are documented in this file.
 ### Added
 - Pin recipes with right-click; pins affect only the default recipe order and are saved per character.
 
+### Fixed
+- Eitr sorting excludes recipes that do not provide Eitr, including after cooking or fermentation.
+
 ---
 
 ## [1.5.0] — 2026-10-19

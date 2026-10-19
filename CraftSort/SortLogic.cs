@@ -135,18 +135,71 @@ namespace CraftSort
             ItemDrop.ItemData.SharedData fallback,
             SortMode mode)
         {
+            return GetItemRecoveryValue(GetRecoverySharedData(recipe, fallback), mode);
+        }
+
+        public static bool ProvidesRecovery(Recipe? recipe, SortMode mode)
+        {
+            if (recipe?.m_item?.m_itemData?.m_shared == null) return false;
+            var shared = GetRecoverySharedData(recipe, recipe.m_item.m_itemData.m_shared);
+            float baseValue;
+            float upfront = 0f;
+            float overTime = 0f;
+            float regenMultiplier = 1f;
+
+            var consumeStats = shared.m_consumeStatusEffect as SE_Stats;
+            switch (mode)
+            {
+                case SortMode.Health:
+                    baseValue = shared.m_food;
+                    if (consumeStats != null)
+                    {
+                        upfront = consumeStats.m_healthUpFront;
+                        overTime = consumeStats.m_healthOverTime;
+                        regenMultiplier = consumeStats.m_healthRegenMultiplier;
+                    }
+                    break;
+                case SortMode.Stamina:
+                    baseValue = shared.m_foodStamina;
+                    if (consumeStats != null)
+                    {
+                        upfront = consumeStats.m_staminaUpFront;
+                        overTime = consumeStats.m_staminaOverTime;
+                        regenMultiplier = consumeStats.m_staminaRegenMultiplier;
+                    }
+                    break;
+                case SortMode.Eitr:
+                    baseValue = shared.m_foodEitr;
+                    if (consumeStats != null)
+                    {
+                        upfront = consumeStats.m_eitrUpFront;
+                        overTime = consumeStats.m_eitrOverTime;
+                        regenMultiplier = consumeStats.m_eitrRegenMultiplier;
+                    }
+                    break;
+                default:
+                    return true;
+            }
+
+            return baseValue > 0f || upfront > 0f || overTime > 0f || regenMultiplier > 1f;
+        }
+
+        private static ItemDrop.ItemData.SharedData GetRecoverySharedData(
+            Recipe recipe,
+            ItemDrop.ItemData.SharedData fallback)
+        {
             var rawItem = recipe.m_item;
-            if (rawItem == null) return GetItemRecoveryValue(fallback, mode);
+            if (rawItem == null) return fallback;
 
             string rawPrefabName = rawItem.gameObject.name;
             if (_convertedFoodCache.TryGetValue(rawPrefabName, out var cached) && cached != null)
             {
                 var cachedShared = cached.m_itemData?.m_shared;
-                if (cachedShared != null) return GetItemRecoveryValue(cachedShared, mode);
+                if (cachedShared != null) return cachedShared;
             }
 
             var scene = ZNetScene.instance;
-            if (scene == null || scene.m_prefabs == null) return GetItemRecoveryValue(fallback, mode);
+            if (scene == null || scene.m_prefabs == null) return fallback;
 
             for (int i = 0; i < scene.m_prefabs.Count; i++)
             {
@@ -158,10 +211,10 @@ namespace CraftSort
                 if (convertedShared == null) continue;
 
                 _convertedFoodCache[rawPrefabName] = converted!;
-                return GetItemRecoveryValue(convertedShared, mode);
+                return convertedShared;
             }
 
-            return GetItemRecoveryValue(fallback, mode);
+            return fallback;
         }
 
         private static ItemDrop? FindConvertedItem(GameObject prefab, string rawPrefabName)

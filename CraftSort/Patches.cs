@@ -103,6 +103,9 @@ namespace CraftSort
             if (SortLogic.CurrentFilter != WeaponFilter.None)
                 FilterWeaponOnList(list);
 
+            if (SortLogic.CurrentMode == SortMode.Eitr)
+                FilterWithoutRecoveryOnList(list, SortMode.Eitr);
+
             if (SortLogic.CurrentMode == SortMode.None)
             {
                 PrioritizePinnedOnList(list);
@@ -215,6 +218,31 @@ namespace CraftSort
             }
 
             while (list.Count > writeIdx)
+                list.RemoveAt(list.Count - 1);
+        }
+
+        private static void FilterWithoutRecoveryOnList(IList list, SortMode mode)
+        {
+            int originalCount = list.Count;
+            int writeIndex = 0;
+            for (int i = 0; i < originalCount; i++)
+            {
+                var pair = list[i];
+                if (SortLogic.ProvidesRecovery(GetRecipeFromPair(pair), mode))
+                {
+                    if (writeIndex != i)
+                        list[writeIndex] = pair;
+                    writeIndex++;
+                }
+                else
+                {
+                    var element = GetInterfaceElement(pair);
+                    if (element != null)
+                        element.SetActive(false);
+                }
+            }
+
+            while (list.Count > writeIndex)
                 list.RemoveAt(list.Count - 1);
         }
 
@@ -374,18 +402,15 @@ namespace CraftSort
             if (fullList == null || fullList.Count == 0) return;
 
             _filteredCache.Clear();
-
-            if (SortLogic.CurrentFilter != WeaponFilter.None)
+            bool filterEitr = SortLogic.CurrentMode == SortMode.Eitr;
+            for (int i = 0; i < fullList.Count; i++)
             {
-                for (int i = 0; i < fullList.Count; i++)
-                {
-                    if (SortLogic.PassesFilter(fullList[i]))
-                        _filteredCache.Add(fullList[i]);
-                }
-            }
-            else
-            {
-                _filteredCache.AddRange(fullList);
+                var recipe = fullList[i];
+                if (SortLogic.CurrentFilter != WeaponFilter.None && !SortLogic.PassesFilter(recipe))
+                    continue;
+                if (filterEitr && !SortLogic.ProvidesRecovery(recipe, SortMode.Eitr))
+                    continue;
+                _filteredCache.Add(recipe);
             }
 
             if (SortLogic.CurrentMode == SortMode.New)
