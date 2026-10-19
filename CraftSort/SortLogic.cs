@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace CraftSort
 {
@@ -40,7 +41,7 @@ namespace CraftSort
         private static int[] _indexCache = System.Array.Empty<int>();
         private static string[] _nameCache = System.Array.Empty<string>();
         private static Recipe?[] _recipeCache = System.Array.Empty<Recipe?>();
-        private static readonly Dictionary<string, ItemDrop> _cookedFoodCache = new Dictionary<string, ItemDrop>();
+        private static readonly Dictionary<string, ItemDrop> _convertedFoodCache = new Dictionary<string, ItemDrop>();
 
         public static float[] GetValueCache() => _valueCache;
         public static int[] GetIndexCache() => _indexCache;
@@ -56,7 +57,7 @@ namespace CraftSort
             _indexCache = System.Array.Empty<int>();
             _nameCache = System.Array.Empty<string>();
             _recipeCache = System.Array.Empty<Recipe?>();
-            _cookedFoodCache.Clear();
+            _convertedFoodCache.Clear();
         }
 
         public static float GetSortValue(Recipe? recipe)
@@ -96,17 +97,19 @@ namespace CraftSort
                 case SortMode.SpiritDmg:
                     return s.m_damages.m_spirit;
                 case SortMode.Health:
-                    return GetFoodStats(recipe, s).m_food;
+                    return GetRecoveryValue(recipe, s, SortMode.Health);
                 case SortMode.Stamina:
-                    return GetFoodStats(recipe, s).m_foodStamina;
+                    return GetRecoveryValue(recipe, s, SortMode.Stamina);
                 case SortMode.Eitr:
-                    return GetFoodStats(recipe, s).m_foodEitr;
+                    return GetRecoveryValue(recipe, s, SortMode.Eitr);
                 default:
                     return 0f;
             }
         }
 
         private const float TypeBonus = 100000f;
+        private const float LongRegenPriority = 1000000f;
+        private const float LongRegenDurationSeconds = 60f;
 
         private static float ArmorTypePriority(ItemDrop.ItemData.SharedData s)
         {
@@ -124,49 +127,117 @@ namespace CraftSort
             return (int)s.m_itemType == 5 ? TypeBonus : 0f;
         }
 
-        private static ItemDrop.ItemData.SharedData GetFoodStats(
+        private static float GetRecoveryValue(
             Recipe recipe,
-            ItemDrop.ItemData.SharedData fallback)
+            ItemDrop.ItemData.SharedData fallback,
+            SortMode mode)
         {
             var rawItem = recipe.m_item;
-            if (rawItem == null) return fallback;
+            if (rawItem == null) return GetItemRecoveryValue(fallback, mode);
 
             string rawPrefabName = rawItem.gameObject.name;
-            if (_cookedFoodCache.TryGetValue(rawPrefabName, out var cached) && cached != null)
+            if (_convertedFoodCache.TryGetValue(rawPrefabName, out var cached) && cached != null)
             {
                 var cachedShared = cached.m_itemData?.m_shared;
-                if (cachedShared != null) return cachedShared;
+                if (cachedShared != null) return GetItemRecoveryValue(cachedShared, mode);
             }
 
             var scene = ZNetScene.instance;
-            if (scene == null || scene.m_prefabs == null) return fallback;
+            if (scene == null || scene.m_prefabs == null) return GetItemRecoveryValue(fallback, mode);
 
             for (int i = 0; i < scene.m_prefabs.Count; i++)
             {
                 var prefab = scene.m_prefabs[i];
                 if (prefab == null) continue;
 
-                var station = prefab.GetComponent<CookingStation>();
-                if (station == null || station.m_conversion == null) continue;
+                var converted = FindConvertedItem(prefab, rawPrefabName);
+                var convertedShared = converted?.m_itemData?.m_shared;
+                if (convertedShared == null) continue;
 
-                for (int j = 0; j < station.m_conversion.Count; j++)
+                _convertedFoodCache[rawPrefabName] = converted!;
+                return GetItemRecoveryValue(convertedShared, mode);
+            }
+
+            return GetItemRecoveryValue(fallback, mode);
+        }
+
+        private static ItemDrop? FindConvertedItem(GameObject prefab, string rawPrefabName)
+        {
+            var cookingStation = prefab.GetComponent<CookingStation>();
+            if (cookingStation != null && cookingStation.m_conversion != null)
+            {
+                for (int i = 0; i < cookingStation.m_conversion.Count; i++)
                 {
-                    var conversion = station.m_conversion[j];
-                    if (conversion == null || conversion.m_from == null || conversion.m_to == null)
-                        continue;
-
-                    if (conversion.m_from.gameObject.name != rawPrefabName) continue;
-
-                    var cooked = conversion.m_to;
-                    var cookedShared = cooked.m_itemData?.m_shared;
-                    if (cookedShared == null) continue;
-
-                    _cookedFoodCache[rawPrefabName] = cooked;
-                    return cookedShared;
+                    var conversion = cookingStation.m_conversion[i];
+                    if (conversion != null && conversion.m_from != null && conversion.m_to != null
+                        && conversion.m_from.gameObject.name == rawPrefabName)
+                        return conversion.m_to;
                 }
             }
 
-            return fallback;
+            var fermenter = prefab.GetComponent<Fermenter>();
+            if (fermenter != null && fermenter.m_conversion != null)
+            {
+                for (int i = 0; i < fermenter.m_conversion.Count; i++)
+                {
+                    var conversion = fermenter.m_conversion[i];
+                    if (conversion != null && conversion.m_from != null && conversion.m_to != null
+                        && conversion.m_from.gameObject.name == rawPrefabName)
+                        return conversion.m_to;
+                }
+            }
+
+            return null;
+        }
+
+        private static float GetItemRecoveryValue(ItemDrop.ItemData.SharedData shared, SortMode mode)
+        {
+            float value;
+            float upfront = 0f;
+            float overTime = 0f;
+            float regenMultiplier = 1f;
+
+            var consumeStats = shared.m_consumeStatusEffect as SE_Stats;
+            switch (mode)
+            {
+                case SortMode.Health:
+                    value = shared.m_food;
+                    if (consumeStats != null)
+                    {
+                        upfront = consumeStats.m_healthUpFront;
+                        overTime = consumeStats.m_healthOverTime;
+                        regenMultiplier = consumeStats.m_healthRegenMultiplier;
+                    }
+                    break;
+                case SortMode.Stamina:
+                    value = shared.m_foodStamina;
+                    if (consumeStats != null)
+                    {
+                        upfront = consumeStats.m_staminaUpFront;
+                        overTime = consumeStats.m_staminaOverTime;
+                        regenMultiplier = consumeStats.m_staminaRegenMultiplier;
+                    }
+                    break;
+                case SortMode.Eitr:
+                    value = shared.m_foodEitr;
+                    if (consumeStats != null)
+                    {
+                        upfront = consumeStats.m_eitrUpFront;
+                        overTime = consumeStats.m_eitrOverTime;
+                        regenMultiplier = consumeStats.m_eitrRegenMultiplier;
+                    }
+                    break;
+                default:
+                    return 0f;
+            }
+
+            float longRegenPriority = consumeStats != null
+                && consumeStats.m_ttl >= LongRegenDurationSeconds
+                && regenMultiplier > 1f
+                    ? LongRegenPriority + regenMultiplier
+                    : 0f;
+
+            return longRegenPriority + value + System.Math.Max(0f, upfront) + System.Math.Max(0f, overTime);
         }
 
         private static float WeaponTypePriority(ItemDrop.ItemData.SharedData s)
