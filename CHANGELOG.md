@@ -4,6 +4,13 @@ All notable changes to CraftSort are documented in this file.
 
 ---
 
+## [Unreleased]
+
+### Added
+- Pin recipes with right-click; pins affect only the default recipe order and are saved per character.
+
+---
+
 ## [1.5.0] — 2026-10-19
 
 ### Added

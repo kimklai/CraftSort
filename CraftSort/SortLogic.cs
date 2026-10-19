@@ -40,6 +40,7 @@ namespace CraftSort
         private static float[] _valueCache = System.Array.Empty<float>();
         private static int[] _indexCache = System.Array.Empty<int>();
         private static string[] _nameCache = System.Array.Empty<string>();
+        private static bool[] _pinnedCache = System.Array.Empty<bool>();
         private static Recipe?[] _recipeCache = System.Array.Empty<Recipe?>();
         private static readonly Dictionary<string, ItemDrop> _convertedFoodCache = new Dictionary<string, ItemDrop>();
 
@@ -48,6 +49,7 @@ namespace CraftSort
         public static string[] GetNameCache() => _nameCache;
         public static IComparer<int> ValueComparer => ValueIndexComparer.Instance;
         public static IComparer<int> NameComparer => NameIndexComparer.Instance;
+        public static bool[] GetPinnedCache() => _pinnedCache;
 
         internal static void Reset()
         {
@@ -56,6 +58,7 @@ namespace CraftSort
             _valueCache = System.Array.Empty<float>();
             _indexCache = System.Array.Empty<int>();
             _nameCache = System.Array.Empty<string>();
+            _pinnedCache = System.Array.Empty<bool>();
             _recipeCache = System.Array.Empty<Recipe?>();
             _convertedFoodCache.Clear();
         }
@@ -273,6 +276,8 @@ namespace CraftSort
                 _indexCache = new int[count];
                 _nameCache = new string[count];
             }
+            if (_pinnedCache.Length < count)
+                _pinnedCache = new bool[count];
         }
 
         /// <summary>
@@ -282,7 +287,8 @@ namespace CraftSort
         public static void SortRecipeList(List<Recipe> recipes)
         {
             if (recipes == null || recipes.Count < 2) return;
-            if (CurrentMode == SortMode.None) return;
+            PinnedRecipeTracker.EnsureLoaded();
+            if (CurrentMode == SortMode.None && !PinnedRecipeTracker.HasAny) return;
 
             int count = recipes.Count;
             EnsureCaches(count);
@@ -298,6 +304,7 @@ namespace CraftSort
                 {
                     string? key = recipes[i]?.m_item?.m_itemData?.m_shared?.m_name;
                     indexCache[i] = i;
+                    _pinnedCache[i] = CurrentMode == SortMode.None && PinnedRecipeTracker.IsPinned(recipes[i]);
                     nameCache[i] = (key != null && loc != null) ? (loc.Localize(key) ?? "") : (key ?? "");
                 }
                 System.Array.Sort(indexCache, 0, count, NameComparer);
@@ -308,8 +315,9 @@ namespace CraftSort
                 var indexCache = GetIndexCache();
                 for (int i = 0; i < count; i++)
                 {
-                    valueCache[i] = GetSortValue(recipes[i]);
+                    valueCache[i] = CurrentMode == SortMode.None ? 0f : GetSortValue(recipes[i]);
                     indexCache[i] = i;
+                    _pinnedCache[i] = CurrentMode == SortMode.None && PinnedRecipeTracker.IsPinned(recipes[i]);
                 }
                 System.Array.Sort(indexCache, 0, count, ValueComparer);
             }
@@ -326,6 +334,8 @@ namespace CraftSort
             public static readonly ValueIndexComparer Instance = new ValueIndexComparer();
             public int Compare(int x, int y)
             {
+                if (_pinnedCache[x] != _pinnedCache[y])
+                    return _pinnedCache[x] ? -1 : 1;
                 int cmp = _valueCache[y].CompareTo(_valueCache[x]);
                 return cmp != 0 ? cmp : x.CompareTo(y);
             }
@@ -336,6 +346,8 @@ namespace CraftSort
             public static readonly NameIndexComparer Instance = new NameIndexComparer();
             public int Compare(int x, int y)
             {
+                if (_pinnedCache[x] != _pinnedCache[y])
+                    return _pinnedCache[x] ? -1 : 1;
                 int cmp = string.Compare(_nameCache[x], _nameCache[y], System.StringComparison.OrdinalIgnoreCase);
                 return cmp != 0 ? cmp : x.CompareTo(y);
             }

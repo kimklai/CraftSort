@@ -71,6 +71,7 @@ Assembly references:
     ├── Patches.cs         Transpiler + AAA compat + NewDots + OnSelectedRecipe + Hide cleanup + ResetKnown hook
     ├── TabUI.cs           Dual-container UI, drag/resize, EditMode, station auto-detection, button config
     ├── NewRecipeTracker.cs Per-character persistence, blue dot management, ClearAll for resetknownitems
+    ├── PinnedRecipeTracker.cs Per-character pinned recipes and right-click toggling
     ├── IconFactory.cs     Loads RGBA from IconData, caches sprites via LoadRawTextureData
     └── IconData.cs        Auto-generated — 15 base64 RGBA strings (64×64 icons)
 

@@ -98,10 +98,16 @@ namespace CraftSort
             var list = GetAvailableRecipesList(gui);
             if (list == null || list.Count == 0) return;
 
+            PinnedRecipeTracker.EnsureLoaded();
+
             if (SortLogic.CurrentFilter != WeaponFilter.None)
                 FilterWeaponOnList(list);
 
-            if (SortLogic.CurrentMode == SortMode.None) return;
+            if (SortLogic.CurrentMode == SortMode.None)
+            {
+                PrioritizePinnedOnList(list);
+                return;
+            }
 
             if (SortLogic.CurrentMode == SortMode.New)
             {
@@ -216,11 +222,14 @@ namespace CraftSort
         {
             var valueCache = SortLogic.GetValueCache();
             var indexCache = SortLogic.GetIndexCache();
+            var pinnedCache = SortLogic.GetPinnedCache();
 
             for (int i = 0; i < count; i++)
             {
-                valueCache[i] = SortLogic.GetSortValue(GetRecipeFromPair(list[i]));
+                var recipe = GetRecipeFromPair(list[i]);
+                valueCache[i] = SortLogic.GetSortValue(recipe);
                 indexCache[i] = i;
+                pinnedCache[i] = SortLogic.CurrentMode == SortMode.None && PinnedRecipeTracker.IsPinned(recipe);
             }
 
             System.Array.Sort(indexCache, 0, count, SortLogic.ValueComparer);
@@ -231,11 +240,13 @@ namespace CraftSort
         {
             var nameCache = SortLogic.GetNameCache();
             var indexCache = SortLogic.GetIndexCache();
+            var pinnedCache = SortLogic.GetPinnedCache();
             var loc = Localization.instance;
 
             for (int i = 0; i < count; i++)
             {
                 var recipe = GetRecipeFromPair(list[i]);
+                pinnedCache[i] = SortLogic.CurrentMode == SortMode.None && PinnedRecipeTracker.IsPinned(recipe);
                 string? key = recipe?.m_item?.m_itemData?.m_shared?.m_name;
                 indexCache[i] = i;
                 string name = "";
@@ -265,6 +276,60 @@ namespace CraftSort
             for (int i = 0; i < count; i++)
                 list[i] = _reorderCache[i];
         }
+
+        private static void PrioritizePinnedOnList(IList list)
+        {
+            int count = list.Count;
+            if (count < 2 || !PinnedRecipeTracker.HasAny) return;
+
+            if (_reorderCache.Length < count)
+                _reorderCache = new object[count];
+
+            int writeIndex = 0;
+            for (int i = 0; i < count; i++)
+            {
+                if (PinnedRecipeTracker.IsPinned(GetRecipeFromPair(list[i])))
+                    _reorderCache[writeIndex++] = list[i];
+            }
+            for (int i = 0; i < count; i++)
+            {
+                if (!PinnedRecipeTracker.IsPinned(GetRecipeFromPair(list[i])))
+                    _reorderCache[writeIndex++] = list[i];
+            }
+            for (int i = 0; i < count; i++)
+                list[i] = _reorderCache[i];
+        }
+
+        internal static void RefreshPinnedOrder()
+        {
+            var gui = InventoryGui.instance;
+            if (gui == null) return;
+            var list = GetAvailableRecipesList(gui);
+            if (list == null || list.Count < 2) return;
+
+            int count = list.Count;
+            var positions = new Vector2[count];
+            var hasPosition = new bool[count];
+            for (int i = 0; i < count; i++)
+            {
+                var element = GetInterfaceElement(list[i]);
+                var rect = element != null ? element.GetComponent<RectTransform>() : null;
+                if (rect == null) continue;
+                positions[i] = rect.anchoredPosition;
+                hasPosition[i] = true;
+            }
+
+            SortAvailableRecipes(gui);
+            int newCount = System.Math.Min(count, list.Count);
+            for (int i = 0; i < newCount; i++)
+            {
+                if (!hasPosition[i]) continue;
+                var element = GetInterfaceElement(list[i]);
+                var rect = element != null ? element.GetComponent<RectTransform>() : null;
+                if (rect != null)
+                    rect.anchoredPosition = positions[i];
+            }
+        }
     }
 
     /// <summary>
@@ -293,7 +358,9 @@ namespace CraftSort
         static void Prefix(ref List<Recipe> recipes)
         {
             if (!CraftSortPlugin.Enabled) return;
-            if (SortLogic.CurrentMode == SortMode.None && SortLogic.CurrentFilter == WeaponFilter.None) return;
+            PinnedRecipeTracker.EnsureLoaded();
+            if (SortLogic.CurrentMode == SortMode.None && SortLogic.CurrentFilter == WeaponFilter.None
+                && !PinnedRecipeTracker.HasAny) return;
 
             if (!_aaaChecked)
             {
@@ -330,10 +397,7 @@ namespace CraftSort
                         _filteredCache.RemoveAt(i);
                 }
             }
-            else if (SortLogic.CurrentMode != SortMode.None)
-            {
-                SortLogic.SortRecipeList(_filteredCache);
-            }
+            SortLogic.SortRecipeList(_filteredCache);
 
             if (_filteredCache.Count == 0) { recipes = _emptyList; return; }
 
@@ -450,6 +514,7 @@ namespace CraftSort
         {
             if (!CraftSortPlugin.Enabled) return;
             NewRecipeTracker.EnsureLoaded();
+            PinnedRecipeTracker.EnsureLoaded();
 
             var list = Patch_UpdateRecipeList.GetAvailableRecipesList(__instance);
             if (list == null) return;
@@ -461,6 +526,7 @@ namespace CraftSort
                 var element = Patch_UpdateRecipeList.GetInterfaceElement(list[i]);
                 if (element == null) continue;
 
+                PinnedRecipeTracker.BindElement(element, recipe);
                 bool isNew = NewRecipeTracker.IsNew(recipe);
                 NewRecipeTracker.SetDot(element, isNew);
                 if (isNew) newCount++;

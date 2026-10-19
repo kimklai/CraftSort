@@ -21,6 +21,7 @@ Revival of the deprecated SortCraft mod. Adds icon tab buttons to the left side 
 - **18 sort/filter modes** — food stations show 7 tabs, combat stations show up to 17 in a flexible grid
 - **All-icon buttons** — every button uses a custom icon, no text
 - **Weapon filters** — 1H / 2H toggle buttons (blue border) combine with any sort mode
+- **Pinned recipes** — right-click a recipe to pin or unpin it; pins affect the default recipe order only
 - **Auto food/combat detection** — works with any modded station by inspecting recipe content
 - **New recipe indicator** — yellow dot on unviewed recipes + "New" filter tab
 - **Clean button** — marks all known recipes as viewed, clears all yellow dots
@@ -122,6 +123,10 @@ CombatWidth = 104
 5. **Right-click** the handle again to exit Edit Mode
 
 Each panel (food / combat) is positioned and resized independently.
+
+## 📌 Pin Recipes
+
+Right-click a recipe in the crafting list to pin it. Pinned recipes show a “P” badge and appear before other recipes in the default recipe order. Selecting another sort mode ignores pins. Right-click again to unpin. Pins are saved separately for each character.
 
 ## 🎮 Console Command
 

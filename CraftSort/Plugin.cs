@@ -79,6 +79,7 @@ namespace CraftSort
             {
                 _harmony = null;
                 TabUI.Reset();
+                PinnedRecipeTracker.Reset();
                 NewRecipeTracker.Reset();
                 IconFactory.Reset();
                 SortLogic.Reset();
