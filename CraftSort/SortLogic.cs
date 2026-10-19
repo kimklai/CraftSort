@@ -48,6 +48,17 @@ namespace CraftSort
         public static IComparer<int> ValueComparer => ValueIndexComparer.Instance;
         public static IComparer<int> NameComparer => NameIndexComparer.Instance;
 
+        internal static void Reset()
+        {
+            CurrentMode = SortMode.None;
+            CurrentFilter = WeaponFilter.None;
+            _valueCache = System.Array.Empty<float>();
+            _indexCache = System.Array.Empty<int>();
+            _nameCache = System.Array.Empty<string>();
+            _recipeCache = System.Array.Empty<Recipe?>();
+            _cookedFoodCache.Clear();
+        }
+
         public static float GetSortValue(Recipe? recipe)
         {
             if (recipe == null) return 0f;

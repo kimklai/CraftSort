@@ -66,5 +66,19 @@ namespace CraftSort
             _keyCache[key] = sprite;
             return sprite;
         }
+
+        internal static void Reset()
+        {
+            foreach (var sprite in _keyCache.Values)
+            {
+                if (sprite == null) continue;
+                var texture = sprite.texture;
+                Object.Destroy(sprite);
+                if (texture != null) Object.Destroy(texture);
+            }
+
+            _keyCache.Clear();
+            _cache.Clear();
+        }
     }
 }

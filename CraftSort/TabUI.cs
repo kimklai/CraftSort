@@ -801,6 +801,9 @@ namespace CraftSort
             if (_combatContainer != null)
                 UnityEngine.Object.Destroy(_combatContainer);
 
+            DestroySpriteAndTexture(_roundedSprite);
+            DestroySpriteAndTexture(_borderSprite);
+
             _foodContainer = null;
             _combatContainer = null;
             _sortButtons.Clear();
@@ -811,9 +814,28 @@ namespace CraftSort
             _lastActiveMode = (SortMode)(-1);
             _lastActiveFilter = (WeaponFilter)(-1);
             _cachedStationKey = null;
+            _cachedIsFoodStation = false;
             _editMode = false;
             _foodResizeCtrl = null;
             _combatResizeCtrl = null;
+            _roundedSprite = null;
+            _borderSprite = null;
+            _updateCraftingPanel = null;
+            _cfgFoodPosX = null;
+            _cfgFoodPosY = null;
+            _cfgFoodWidth = null;
+            _cfgCombatPosX = null;
+            _cfgCombatPosY = null;
+            _cfgCombatWidth = null;
+        }
+
+        private static void DestroySpriteAndTexture(Sprite? sprite)
+        {
+            if (sprite == null) return;
+            var texture = sprite.texture;
+            UnityEngine.Object.Destroy(sprite);
+            if (texture != null)
+                UnityEngine.Object.Destroy(texture);
         }
 
         private static Sprite CreateRoundedSprite(int width, int height, int radius)

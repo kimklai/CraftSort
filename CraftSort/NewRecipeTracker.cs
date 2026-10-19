@@ -220,6 +220,33 @@ namespace CraftSort
 
         public static void Reset()
         {
+            var gui = InventoryGui.instance;
+            if (gui != null)
+            {
+                var list = Patch_UpdateRecipeList.GetAvailableRecipesList(gui);
+                if (list != null)
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        var element = Patch_UpdateRecipeList.GetInterfaceElement(list[i]);
+                        var dot = element != null
+                            ? element.transform.Find("icon/CraftSortNewDot")
+                            : null;
+                        if (dot != null)
+                            UnityEngine.Object.Destroy(dot.gameObject);
+                    }
+                }
+            }
+
+            if (_dotSprite != null)
+            {
+                var texture = _dotSprite.texture;
+                UnityEngine.Object.Destroy(_dotSprite);
+                if (texture != null)
+                    UnityEngine.Object.Destroy(texture);
+                _dotSprite = null;
+            }
+
             _initialized = false;
             _currentCharacter = "";
             _viewedRecipes.Clear();

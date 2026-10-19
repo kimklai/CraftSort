@@ -13,6 +13,7 @@ namespace CraftSort
         private ConfigEntry<bool> _enabled = null!;
         private ConfigEntry<string> _defaultSortMode = null!;
         private ConfigEntry<bool> _rememberLastMode = null!;
+        private Harmony? _harmony;
 
         private static bool _cachedEnabled;
         public static bool Enabled => _cachedEnabled;
@@ -43,7 +44,7 @@ namespace CraftSort
             BindButtonConfigs();
 
             _cachedEnabled = _enabled.Value;
-            _enabled.SettingChanged += (_, _) => _cachedEnabled = _enabled.Value;
+            _enabled.SettingChanged += OnEnabledSettingChanged;
 
             if (!_cachedEnabled)
                 return;
@@ -51,8 +52,42 @@ namespace CraftSort
             if (System.Enum.TryParse<SortMode>(_defaultSortMode.Value, true, out var defaultMode))
                 SortLogic.CurrentMode = defaultMode;
 
-            new Harmony("dev.craftsort").PatchAll();
+            _harmony = new Harmony("dev.craftsort");
+            _harmony.PatchAll();
             Logger.LogInfo("CraftSort loaded");
+        }
+
+        private void OnEnabledSettingChanged(object sender, System.EventArgs e)
+        {
+            _cachedEnabled = _enabled.Value;
+        }
+
+        private void OnDestroy()
+        {
+            if (_enabled != null)
+                _enabled.SettingChanged -= OnEnabledSettingChanged;
+
+            try
+            {
+                _harmony?.UnpatchSelf();
+            }
+            catch (System.Exception ex)
+            {
+                Logger.LogError($"Failed to remove Harmony patches during unload: {ex}");
+            }
+            finally
+            {
+                _harmony = null;
+                TabUI.Reset();
+                NewRecipeTracker.Reset();
+                IconFactory.Reset();
+                SortLogic.Reset();
+                _buttonConfigs.Clear();
+                _cachedEnabled = false;
+
+                if (Instance == this)
+                    Instance = null!;
+            }
         }
 
         private void BindButtonConfigs()

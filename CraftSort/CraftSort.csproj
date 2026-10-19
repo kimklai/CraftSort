@@ -67,12 +67,21 @@
   <!-- Автокопіювання DLL в BepInEx/plugins після збірки -->
   <PropertyGroup>
     <R2ProfilePath>$(APPDATA)\r2modmanPlus-local\Valheim\profiles\Craft\BepInEx</R2ProfilePath>
+    <UseScriptEngine Condition="'$(UseScriptEngine)' == ''">false</UseScriptEngine>
   </PropertyGroup>
 
-  <Target Name="DeployToBepInEx" AfterTargets="Build">
+  <Target Name="DeployToBepInEx" AfterTargets="Build" Condition="'$(UseScriptEngine)' != 'true'">
     <Copy
       SourceFiles="$(OutputPath)$(AssemblyName).dll"
       DestinationFolder="$(R2ProfilePath)\plugins"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="DeployToScriptEngine" AfterTargets="Build" Condition="'$(UseScriptEngine)' == 'true'">
+    <MakeDir Directories="$(R2ProfilePath)\scripts" />
+    <Copy
+      SourceFiles="$(OutputPath)$(AssemblyName).dll"
+      DestinationFolder="$(R2ProfilePath)\scripts"
       SkipUnchangedFiles="true" />
   </Target>
 
