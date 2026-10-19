@@ -7,11 +7,10 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
 
-    <!-- Шлях до Valheim — задай через змінну середовища VALHEIM_INSTALL -->
-    <!-- або залишить дефолт для стандартного Steam-шляху -->
+    <!-- Set VALHEIM_INSTALL to the Valheim install directory for non-default Steam libraries. -->
     <ValheimPath Condition="'$(VALHEIM_INSTALL)' != ''">$(VALHEIM_INSTALL)</ValheimPath>
     <ValheimPath Condition="'$(ValheimPath)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimPath>
-    <BepInExPath>$(APPDATA)\r2modmanPlus-local\Valheim\profiles\Gun world\BepInEx</BepInExPath>
+    <BepInExPath>$(ValheimPath)\BepInEx</BepInExPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -64,24 +63,12 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Автокопіювання DLL в BepInEx/plugins після збірки -->
-  <PropertyGroup>
-    <R2ProfilePath>$(APPDATA)\r2modmanPlus-local\Valheim\profiles\Craft\BepInEx</R2ProfilePath>
-    <UseScriptEngine Condition="'$(UseScriptEngine)' == ''">false</UseScriptEngine>
-  </PropertyGroup>
-
-  <Target Name="DeployToBepInEx" AfterTargets="Build" Condition="'$(UseScriptEngine)' != 'true'">
+  <!-- Deploy to the installed game's BepInEx scripts folder after each build. -->
+  <Target Name="DeployToScriptEngine" AfterTargets="Build">
+    <MakeDir Directories="$(BepInExPath)\scripts" />
     <Copy
       SourceFiles="$(OutputPath)$(AssemblyName).dll"
-      DestinationFolder="$(R2ProfilePath)\plugins"
-      SkipUnchangedFiles="true" />
-  </Target>
-
-  <Target Name="DeployToScriptEngine" AfterTargets="Build" Condition="'$(UseScriptEngine)' == 'true'">
-    <MakeDir Directories="$(R2ProfilePath)\scripts" />
-    <Copy
-      SourceFiles="$(OutputPath)$(AssemblyName).dll"
-      DestinationFolder="$(R2ProfilePath)\scripts"
+      DestinationFolder="$(BepInExPath)\scripts"
       SkipUnchangedFiles="true" />
   </Target>
 
