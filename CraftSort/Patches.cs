@@ -27,6 +27,10 @@ namespace CraftSort
         private static FieldInfo? _recipeField;
         private static PropertyInfo? _interfaceElementProp;
         private static FieldInfo? _interfaceElementField;
+        private static PropertyInfo? _itemDataProp;
+        private static FieldInfo? _itemDataField;
+        private static MethodInfo? _inCraftTabMethod;
+        private static bool _craftTabMethodLogged;
         private static object[] _reorderCache = System.Array.Empty<object>();
 
         [HarmonyPrepare]
@@ -100,6 +104,9 @@ namespace CraftSort
 
             PinnedRecipeTracker.EnsureLoaded();
 
+            if (IsCraftTab(gui))
+                FilterUpgradeOnlyRecipes(list);
+
             if (SortLogic.CurrentFilter != WeaponFilter.None)
                 FilterWeaponOnList(list);
 
@@ -167,6 +174,76 @@ namespace CraftSort
             if (_interfaceElementField != null)
                 return _interfaceElementField.GetValue(pair) as GameObject;
             return null;
+        }
+
+        private static ItemDrop.ItemData? GetItemDataFromPair(object pair)
+        {
+            if (_itemDataProp == null && _itemDataField == null)
+            {
+                var type = pair.GetType();
+                const BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+                _itemDataProp = type.GetProperty("ItemData", flags);
+                if (_itemDataProp == null)
+                    _itemDataField = type.GetField("ItemData", flags);
+            }
+
+            if (_itemDataProp != null)
+                return _itemDataProp.GetValue(pair) as ItemDrop.ItemData;
+            if (_itemDataField != null)
+                return _itemDataField.GetValue(pair) as ItemDrop.ItemData;
+            return null;
+        }
+
+        internal static bool IsCraftTab(InventoryGui gui)
+        {
+            _inCraftTabMethod ??= AccessTools.Method(typeof(InventoryGui), "InCraftTab");
+            if (_inCraftTabMethod == null)
+            {
+                if (!_craftTabMethodLogged)
+                {
+                    _craftTabMethodLogged = true;
+                    CraftSortPlugin.Log("[CraftSort] WARNING: InCraftTab not found — upgrade-only recipe filtering skipped");
+                }
+                return false;
+            }
+
+            try
+            {
+                return (bool)_inCraftTabMethod.Invoke(gui, null);
+            }
+            catch (System.Exception ex)
+            {
+                CraftSortPlugin.Log($"[CraftSort] WARNING: could not detect crafting tab: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static void FilterUpgradeOnlyRecipes(IList list)
+        {
+            int originalCount = list.Count;
+            int writeIndex = 0;
+            for (int i = 0; i < originalCount; i++)
+            {
+                var pair = list[i];
+                var recipe = GetRecipeFromPair(pair);
+                bool upgradeRow = GetItemDataFromPair(pair) != null
+                    || (recipe != null && recipe.m_noCraftOnlyUpgrade);
+                if (!upgradeRow)
+                {
+                    if (writeIndex != i)
+                        list[writeIndex] = pair;
+                    writeIndex++;
+                }
+                else
+                {
+                    var element = GetInterfaceElement(pair);
+                    if (element != null)
+                        element.SetActive(false);
+                }
+            }
+
+            while (list.Count > writeIndex)
+                list.RemoveAt(list.Count - 1);
         }
 
         private static void FilterWeaponOnList(IList list)
@@ -402,10 +479,16 @@ namespace CraftSort
             if (fullList == null || fullList.Count == 0) return;
 
             _filteredCache.Clear();
+            var gui = InventoryGui.instance;
+            bool craftTab = gui != null && Patch_UpdateRecipeList.IsCraftTab(gui);
             bool filterEitr = SortLogic.CurrentMode == SortMode.Eitr;
             for (int i = 0; i < fullList.Count; i++)
             {
                 var recipe = fullList[i];
+                if (recipe == null)
+                    continue;
+                if (craftTab && recipe.m_noCraftOnlyUpgrade)
+                    continue;
                 if (SortLogic.CurrentFilter != WeaponFilter.None && !SortLogic.PassesFilter(recipe))
                     continue;
                 if (filterEitr && !SortLogic.ProvidesRecovery(recipe, SortMode.Eitr))

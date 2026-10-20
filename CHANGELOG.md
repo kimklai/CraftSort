@@ -11,6 +11,7 @@ All notable changes to CraftSort are documented in this file.
 
 ### Fixed
 - Eitr sorting excludes recipes that do not provide Eitr, including after cooking or fermentation.
+- Upgrade item rows no longer appear in the Craft tab; the Upgrade tab remains available.
 
 ---
 

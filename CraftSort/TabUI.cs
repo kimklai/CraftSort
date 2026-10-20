@@ -175,6 +175,7 @@ namespace CraftSort
             = new List<(Button, Image, Image, WeaponFilter)>();
         private static readonly List<Text> _newTabTexts = new List<Text>();
         private static MethodInfo? _updateCraftingPanel;
+        private static FieldInfo? _recipeListScrollField;
         private static readonly object[] _updatePanelArgs = { false };
         private static Sprite? _roundedSprite;
         private static Sprite? _borderSprite;
@@ -777,10 +778,27 @@ namespace CraftSort
             try
             {
                 _updateCraftingPanel.Invoke(gui, _updatePanelArgs);
+                ResetRecipeListScrollToTop(gui);
             }
             catch (Exception ex)
             {
                 CraftSortPlugin.Log($"[TabUI] InvokeUpdateCraftingPanel error: {ex.InnerException?.Message ?? ex.Message}");
+            }
+        }
+
+        private static void ResetRecipeListScrollToTop(InventoryGui gui)
+        {
+            if (_recipeListScrollField == null)
+            {
+                _recipeListScrollField = typeof(InventoryGui).GetField(
+                    "m_recipeListScroll",
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            }
+
+            if (_recipeListScrollField?.GetValue(gui) is Scrollbar scrollBar)
+            {
+                Canvas.ForceUpdateCanvases();
+                scrollBar.value = 1f;
             }
         }
 
@@ -821,6 +839,7 @@ namespace CraftSort
             _roundedSprite = null;
             _borderSprite = null;
             _updateCraftingPanel = null;
+            _recipeListScrollField = null;
             _cfgFoodPosX = null;
             _cfgFoodPosY = null;
             _cfgFoodWidth = null;
